@@ -3,6 +3,9 @@
 #include <WebServer.h>
 #include <esp32cam.h>
 
+const char *WIFI_SSID = "ไม่รู้ๆๆๆ";
+const char *WIFI_PASS = "12345Tee";
+
 const char *ssid = "esp32-cam";
 const char *password = "12345Tee";
 
@@ -64,13 +67,35 @@ void setup()
     Serial.println(ok ? "[esp32-cam] camera is ready" : "[esp32-cam] can't begin camera");
   }
 
-  Serial.println("[esp32-cam] config wifi at AP mode");
-  WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(local_ip, gateway, subnet);
-  WiFi.softAP(ssid, password);
+  Serial.println("[esp32-cam] config wifi at STA mode");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  Serial.print("[esp32-cam] starting cam server: http://");
-  Serial.println(WiFi.softAPIP());
+  for (uint8_t i = 1; i <= 5; i++)
+  {
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      delay(1000);
+      Serial.print("[esp32-cam] reconnect: ");
+      Serial.println(i);
+
+      if (i == 5)
+      {
+        Serial.println("[esp32-cam] config wifi at AP mode");
+        WiFi.mode(WIFI_AP);
+        WiFi.softAPConfig(local_ip, gateway, subnet);
+        WiFi.softAP(ssid, password);
+        Serial.print("[esp32-cam] starting cam server: http://");
+        Serial.println(WiFi.softAPIP());
+      }
+    }
+  }
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.print("[esp32-cam] starting cam server: http://");
+    Serial.println(WiFi.localIP());
+  }
 
   server.on("/stream", serveJpg);
   server.on("/led_on", onLED);
